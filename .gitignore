@@ -1,0 +1,14 @@
+# Ignora i file DS_Store su macOS
+.DS_Store
+
+# Ignora la cartella dell'ambiente virtuale (es. env)
+env/
+
+# Ignora il file uploaded_files.txt
+uploaded_files.txt
+
+# Ignora i file generati di Python
+__pycache__/
+
+# Ignora il file di config con le credenziali veritiere
+config.json

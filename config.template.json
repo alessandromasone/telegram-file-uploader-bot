@@ -1,0 +1,11 @@
+{
+    "api_id": "TUO_API_ID",
+    "api_hash": "TUO_API_HASH",
+    "bot_token": "TUO_BOT_TOKEN",
+    "group_link": -1001234567890,
+    "thread_id": 1,
+    "folders": [
+        "media/video",
+        "media/image"
+    ]
+}
