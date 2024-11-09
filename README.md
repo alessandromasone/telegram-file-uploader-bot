@@ -36,6 +36,7 @@ Prima di eseguire il bot, assicurati di avere i seguenti prerequisiti:
     ```bash
     pip install -r requirements.txt
     ```
+    se si presenta un errore per quanto riguarda l'interfaccia grafica controlla di aver installato "[Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)" dovrebbe essere la prima spunta, altrimenti puoi rimovere le voci della PyQt5 dal requirements.txt e non utilizzare l'interfaccia
 
 4. **Assicurati che `ffmpeg` sia installato**:
     - **Linux**: 

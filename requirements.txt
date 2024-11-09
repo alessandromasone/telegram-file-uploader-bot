@@ -1,4 +1,5 @@
 cffi==1.17.1
+colorama==0.4.6
 cryptg==0.5.0.post0
 ffmpeg-python==0.2.0
 future==1.0.0
@@ -8,7 +9,7 @@ pyaes==1.6.1
 pyasn1==0.6.1
 pycparser==2.22
 PyQt5==5.15.11
-PyQt5-Qt5==5.15.15
+PyQt5-Qt5==5.15.2
 PyQt5_sip==12.15.0
 rsa==4.9
 Telethon==1.37.0
