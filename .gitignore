@@ -12,3 +12,8 @@ __pycache__/
 
 # Ignora il file di config con le credenziali veritiere
 config.json
+config.yaml
+env.sh
+processed_files.txt
+env.sh
+session.session

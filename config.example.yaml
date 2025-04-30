@@ -1,0 +1,23 @@
+# Dettagli di Autenticazione del Bot
+BOT_TOKEN: "123456789:ABCdefGHIjklMNOpQRsTUVWxyZ"  # Token per l'autenticazione del bot
+API_ID: "12345678"  # ID API per accedere all'API di Telegram
+API_HASH: "abcdefgh1234567890abcdef123456789"  # Hash API per una maggiore autenticazione
+
+# Impostazioni del Gruppo e delle Risposte
+GROUP_LINK: -1001234567890  # Link del gruppo Telegram (ID)
+REPLY_ID: 1 # ID della risposta predefinita
+
+# Gestione dei File (Percorsi)
+FOLDERS:
+  - "path/to/video/folder"  # Cartella per i video da caricare
+  - "path/to/image/folder"  # Cartella per le immagini da caricare
+PROCESSED_FILES_PATH: "processed_files.txt"
+
+# Impostazioni di Caricamento e Streaming
+VIDEO_THUMBNAIL: true|false # Abilita le miniature per i video
+SHOW_PROGRESS_BAR: true|false # Mostra la barra di progresso durante il caricamento
+SUPPORT_VIDEO_STREAMING: true|false # Supporta lo streaming video
+VIDEO_CAPTION: true|false # Includi didascalie per i video (nome del file)
+IMAGE_CAPTION: true|false # Includi didascalie per le immagini (nome del file)
+DELETE_AFTER_UPLOAD: true|false  # Eliminare i file dopo il caricamento
+

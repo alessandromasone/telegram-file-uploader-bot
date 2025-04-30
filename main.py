@@ -1,39 +1,162 @@
-import asyncio
-import json
 import os
-from utils.telegram_client import create_telegram_client, upload_file
-from utils.file_manager import load_uploaded_files, is_supported_file
+import json
+import asyncio
+import yaml
+from video_utils import extract_thumbnail
+from telegram_utils import upload_video_to_telegram, upload_image_to_telegram, initialize_telegram_client
+from custom_utils import is_image, is_video, load_processed_files, save_processed_file, is_already_processed
 
-# Caricamento configurazione
-with open('config.json') as config_file:
-    config = json.load(config_file)
+# Variabili globali
+config = None
+client = None
 
-api_id = config['api_id']
-api_hash = config['api_hash']
-bot_token = config['bot_token']
-group_link = config['group_link']
-thread_id = config['thread_id']
-folders = config['folders']
+async def handle_video(file_path):
+    """Gestisce il caricamento di un video su Telegram."""
+    global client
+    print(f"Video trovato: {file_path}")
+
+    # Inizializza variabili
+    thumbnail_path = None
+    caption = None
+
+    # Estrazione della thumbnail, se configurato
+    if config["VIDEO_THUMBNAIL"]:
+        thumbnail_path = extract_thumbnail(file_path)
+
+    # Impostazione della didascalia, se configurato
+    if config["VIDEO_CAPTION"]:
+        caption = os.path.splitext(os.path.basename(file_path))[0]
+
+    # Parametri per il caricamento
+    supports_streaming = config["SUPPORT_VIDEO_STREAMING"]
+    show_progress = config["SHOW_PROGRESS_BAR"]
+    reply_to_message_id = config["REPLY_ID"]
+
+    # Upload del video su Telegram
+    success = await upload_video_to_telegram(
+        client=client,
+        group_link=config["GROUP_LINK"],
+        video_path=file_path,
+        thumbnail_path=thumbnail_path,
+        supports_streaming=supports_streaming,
+        show_progress=show_progress,
+        caption=caption,
+        reply_to_message_id=reply_to_message_id
+    )
+
+    # Pulizia della thumbnail se è stata estratta
+    if thumbnail_path:
+        os.remove(thumbnail_path)
+
+    # Eliminazione del video dopo l'upload se configurato
+    if config["DELETE_AFTER_UPLOAD"] and os.path.isfile(file_path):
+        os.remove(file_path)
+
+    # Risultato del caricamento
+    print("Caricamento video completato!" if success else "Caricamento fallito.")
+    return success
+
+async def handle_image(file_path):
+    """Gestisce un'immagine (da implementare)."""
+    global client
+    print(f"Immagine trovata: {file_path}")
+    
+    # Inizializza variabili
+    caption = None
+
+    # Impostazione della didascalia, se configurato
+    if config["IMAGE_CAPTION"]:
+        caption = os.path.splitext(os.path.basename(file_path))[0]
+
+    # Parametri per il caricamento
+    show_progress = config["SHOW_PROGRESS_BAR"]
+    reply_to_message_id = config["REPLY_ID"]
+
+    # Upload dell'immagine su Telegram
+    success = await upload_image_to_telegram(
+        client=client,
+        group_link=config["GROUP_LINK"],
+        image_path=file_path,
+        show_progress=show_progress,
+        caption=caption,
+        reply_to_message_id=reply_to_message_id
+    )
+
+    # Eliminazione del video dopo l'upload se configurato
+    if config["DELETE_AFTER_UPLOAD"] and os.path.isfile(file_path):
+        os.remove(file_path)
+
+    # Risultato del caricamento
+    print("Caricamento immagine completato!" if success else "Caricamento fallito.")
+    return success
+
+async def process_file(file_path):
+    """Gestisce un file in base al tipo, se non è già stato processato."""
+    
+    # Controlla se il file è già stato processato
+    if is_already_processed(file_path, config["PROCESSED_FILES_PATH"]):
+        print(f"Già processato, salto: {file_path}")
+        return
+
+    # Gestione del video
+    if is_video(file_path):
+        success = await handle_video(file_path)
+        if success:
+            save_processed_file(file_path, config["PROCESSED_FILES_PATH"])
+
+    # Gestione dell'immagine
+    elif is_image(file_path):
+        success = await handle_image(file_path)
+        if success:
+            save_processed_file(file_path, config["PROCESSED_FILES_PATH"])
+
+    # Gestione dei file non supportati
+    else:
+        print(f"Skippato (tipo non supportato): {file_path}")
+
+async def process_folder(folder):
+    """Processa tutti i file all'interno della cartella."""
+    
+    # Verifica se la cartella esiste
+    if not os.path.isdir(folder):
+        print(f"Errore: la cartella {folder} non esiste.")
+        return
+
+    # Inizia l'elaborazione dei file nella cartella
+    print(f"Controllando la cartella: {folder}")
+    
+    # Itera attraverso tutti i file nella cartella
+    for file in os.listdir(folder):
+        full_path = os.path.join(folder, file)
+        
+        # Solo i file vengono processati, non le cartelle
+        if os.path.isfile(full_path):
+            # Elabora il file
+            await process_file(full_path)
 
 async def main():
-    client = await create_telegram_client(api_id, api_hash, bot_token)
-    uploaded_files = load_uploaded_files()
+    global client, config
+    
+    # Carica la configurazione dal file YAML
+    with open("config.yaml", 'r') as file:
+        config = yaml.safe_load(file)
 
-    video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv']
-    image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
+    # Verifica se ci sono cartelle da processare
+    folders = config["FOLDERS"]
+    if not folders:
+        print("Errore: nessuna cartella configurata.")
+        return
 
-    for folder_path in folders:
-        if not os.path.exists(folder_path):
-            print(f"Folder {folder_path} does not exist, skipping.")
-            continue
+    # Inizializza il client Telegram con il token e le credenziali
+    client = await initialize_telegram_client(
+        config["BOT_TOKEN"],
+        config["API_ID"],
+        config["API_HASH"]
+    )
 
-        for filename in os.listdir(folder_path):
-            file_path = os.path.join(folder_path, filename)
-            if is_supported_file(file_path, uploaded_files, video_extensions, image_extensions):
-                await upload_file(client, file_path, group_link, thread_id, video_extensions, image_extensions)
-            else:
-                print(f"File {filename} already uploaded or unsupported, skipping...")
+    # Processa ogni cartella configurata
+    for folder in folders:
+        await process_folder(folder)
 
-    await client.disconnect()
-
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
