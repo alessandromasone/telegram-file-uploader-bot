@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 import yaml
+import argparse
 from video_utils import extract_thumbnail
 from telegram_utils import upload_video_to_telegram, upload_image_to_telegram, initialize_telegram_client
 from custom_utils import is_image, is_video, load_processed_files, save_processed_file, is_already_processed
