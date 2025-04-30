@@ -134,15 +134,31 @@ async def process_folder(folder):
             # Elabora il file
             await process_file(full_path)
 
+# Funzione principale
 async def main():
     global client, config
-    
-    # Carica la configurazione dal file YAML
-    with open("config.yaml", 'r') as file:
+
+    # Parsing degli argomenti da linea di comando
+    parser = argparse.ArgumentParser(description="Carica e processa video su Telegram.")
+    parser.add_argument(
+        '--config', 
+        type=str, 
+        default='config.yaml',  # Usa 'config.yaml' come valore predefinito
+        help="Percorso del file di configurazione YAML (default: 'config.yaml')"
+    )
+    args = parser.parse_args()
+
+    # Carica la configurazione dal file YAML (quello passato da linea di comando o predefinito)
+    config_path = args.config
+    if not os.path.exists(config_path):
+        print(f"Errore: Il file di configurazione '{config_path}' non esiste.")
+        return
+
+    with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
 
     # Verifica se ci sono cartelle da processare
-    folders = config["FOLDERS"]
+    folders = config.get("FOLDERS", [])
     if not folders:
         print("Errore: nessuna cartella configurata.")
         return
