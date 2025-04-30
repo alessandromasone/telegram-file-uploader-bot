@@ -19,10 +19,10 @@ async def upload_video_to_telegram(
     try:
         # Verifica la dimensione del video
         video_size = os.path.getsize(video_path)  # Ottiene la dimensione del file in byte
-        max_video_size = 1.9 * 1024 * 1024 * 1024  # 1.9 GB in byte
+        max_video_size = 2 * 1024 * 1024 * 1024  # 2 GB in byte
 
         if video_size > max_video_size:
-            print(f"Errore: Il file video '{video_path}' è troppo grande (>{1.9}GB).")
+            print(f"Errore: Il file video '{video_path}' è troppo grande (>{2}GB).")
             return False  # Se il video è troppo grande, interrompe l'operazione
 
         # Ottieni i dettagli del gruppo tramite il link
