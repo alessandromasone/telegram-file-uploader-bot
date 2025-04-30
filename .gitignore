@@ -18,4 +18,3 @@ session.session
 # Ignora env privati per sviluppo
 env.sh
 env.bat
-
