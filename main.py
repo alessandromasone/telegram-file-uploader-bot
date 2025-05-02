@@ -46,11 +46,11 @@ async def handle_video(file_path):
     )
 
     # Pulizia della thumbnail se è stata estratta
-    if thumbnail_path:
+    if thumbnail_path and os.path.isfile(thumbnail_path):
         os.remove(thumbnail_path)
 
     # Eliminazione del video dopo l'upload se configurato
-    if config["DELETE_AFTER_UPLOAD"] and os.path.isfile(file_path):
+    if config["DELETE_AFTER_UPLOAD"] and os.path.isfile(file_path) and success:
         os.remove(file_path)
 
     # Risultato del caricamento
@@ -84,7 +84,7 @@ async def handle_image(file_path):
     )
 
     # Eliminazione del video dopo l'upload se configurato
-    if config["DELETE_AFTER_UPLOAD"] and os.path.isfile(file_path):
+    if config["DELETE_AFTER_UPLOAD"] and os.path.isfile(file_path) and success:
         os.remove(file_path)
 
     # Risultato del caricamento
