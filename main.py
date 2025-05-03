@@ -142,14 +142,20 @@ async def main():
     # Parsing degli argomenti da linea di comando
     parser = argparse.ArgumentParser(description="Carica e processa video su Telegram.")
     parser.add_argument(
-        '--config', 
-        type=str, 
-        default='config.yaml',  # Usa 'config.yaml' come valore predefinito
+        '--config',
+        type=str,
+        default='config.yaml',
         help="Percorso del file di configurazione YAML (default: 'config.yaml')"
+    )
+    parser.add_argument(
+        '--session',
+        type=str,
+        default='session.session',
+        help="Nome del file di sessione Telethon (default: 'session.session')"
     )
     args = parser.parse_args()
 
-    # Carica la configurazione dal file YAML (quello passato da linea di comando o predefinito)
+    # Carica la configurazione dal file YAML
     config_path = args.config
     if not os.path.exists(config_path):
         print(f"Errore: Il file di configurazione '{config_path}' non esiste.")
@@ -164,11 +170,12 @@ async def main():
         print("Errore: nessuna cartella configurata.")
         return
 
-    # Inizializza il client Telegram con il token e le credenziali
+    # Inizializza il client Telegram con il token, credenziali e nome file di sessione
     client = await initialize_telegram_client(
         config["BOT_TOKEN"],
         config["API_ID"],
-        config["API_HASH"]
+        config["API_HASH"],
+        session_file=args.session
     )
 
     # Processa ogni cartella configurata

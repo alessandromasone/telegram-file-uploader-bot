@@ -154,23 +154,33 @@ async def upload_file_with_progress(client: TelegramClient, file_path: str, show
         return await client.upload_file(file_path)
 
 
-# Funzione per inizializzare il client di Telegram con il bot token, api_id e api_hash
-async def initialize_telegram_client(bot_token: str, api_id: str, api_hash: str) -> TelegramClient:
+import os
+from telethon import TelegramClient
+
+# Funzione per inizializzare il client di Telegram con supporto per nome file sessione personalizzato
+async def initialize_telegram_client(
+    bot_token: str, 
+    api_id: str, 
+    api_hash: str, 
+    session_file: str = 'session.session'
+) -> TelegramClient:
     """Avvia e restituisce un'istanza autenticata di TelegramClient."""
-    session_file = 'session.session'  # Nome file usato da Telethon per la sessione
+    
     use_existing_session = os.path.exists(session_file)
 
-    # Crea un'istanza di TelegramClient
-    client = TelegramClient('session', api_id, api_hash)
+    # Crea un'istanza di TelegramClient con il nome file della sessione (senza estensione)
+    session_name = os.path.splitext(session_file)[0]
+    client = TelegramClient(session_name, api_id, api_hash)
 
     if use_existing_session:
         print("Sessione esistente trovata. Riutilizzo...")
-        await client.connect()  # Connetti il client
-        if not await client.is_user_authorized():  # Verifica se l'utente è autorizzato
+        await client.connect()
+        if not await client.is_user_authorized():
             print("Sessione non autorizzata. È richiesto un nuovo login.")
             await client.start(bot_token=bot_token) if bot_token else await client.start()
     else:
         print("Nessuna sessione trovata. Creazione nuova sessione...")
         await client.start(bot_token=bot_token) if bot_token else await client.start()
 
-    return client  # Restituisce il client autenticato
+    return client
+
