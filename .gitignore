@@ -13,7 +13,7 @@ __pycache__/
 # Ignora il file di config con le credenziali veritiere
 config.yaml
 processed_files.txt
-session.session
+*.session
 
 # Ignora env privati per sviluppo
 env.sh
