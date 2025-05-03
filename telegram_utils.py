@@ -153,10 +153,6 @@ async def upload_file_with_progress(client: TelegramClient, file_path: str, show
         # Se non è richiesta la barra di progresso, carica direttamente il file
         return await client.upload_file(file_path)
 
-
-import os
-from telethon import TelegramClient
-
 # Funzione per inizializzare il client di Telegram con supporto per nome file sessione personalizzato
 async def initialize_telegram_client(
     bot_token: str, 
