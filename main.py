@@ -181,6 +181,9 @@ async def main():
     # Processa ogni cartella configurata
     for folder in folders:
         await process_folder(folder)
+    
+    # Chiudi il client (importantissimo!)
+    await client.disconnect()
 
 if __name__ == '__main__':
     asyncio.run(main())
