@@ -148,7 +148,7 @@ async def upload_file_with_progress(client: TelegramClient, file_path: str, show
 
         # Inizializza la barra di progresso
         with tqdm(total=file_size, unit='B', unit_scale=True, desc=f"Caricamento {os.path.basename(file_path)}") as pbar:
-            return await client.upload_file(file_path, progress_callback=progress_callback)
+            return await client.upload_file(file_path, progress_callback=progress_callback, part_size_kb=512)
     else:
         # Se non è richiesta la barra di progresso, carica direttamente il file
         return await client.upload_file(file_path)
