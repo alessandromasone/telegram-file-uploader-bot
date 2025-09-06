@@ -15,7 +15,7 @@ RUN bash -c "source /app/venv/bin/activate && pip install --upgrade pip setuptoo
 
 # Copia requirements e installa nel venv
 COPY requirements.txt ./
-RUN bash -c "source /app/venv/bin/activate && pip install --no-cache-dir -r requirements.txt"
+RUN bash -c "pip install --no-cache-dir -r requirements.txt"
 
 # Copia tutto il progetto
 COPY . .
@@ -29,4 +29,4 @@ ENV CONFIG_FILE="config.yaml" \
 VOLUME ["/app/video", "/app/images", "/app/session"]
 
 # CMD: esegue il bot una sola volta all'avvio
-CMD [ "bash", "-c", "source /app/venv/bin/activate && python /app/main.py --config \"$CONFIG_FILE\" --session \"$SESSION_FILE\"" ]
+CMD [ "bash", "-c", "python /app/main.py --config \"$CONFIG_FILE\" --session \"$SESSION_FILE\"" ]
