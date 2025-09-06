@@ -22,7 +22,7 @@ COPY . .
 ENV CRON="" \
     CONFIG_FILE="config.yaml" \
     SESSION_FILE="session.session" \
-    PATH="/app/venv/bin:$PATH"  # aggiunge il venv al PATH
+    PATH="/app/venv/bin:$PATH"
 
 # Volumi
 VOLUME ["/app/video", "/app/images"]
