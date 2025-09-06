@@ -31,8 +31,8 @@ VOLUME ["/app/video", "/app/images", "/app/session"]
 
 # CMD che genera il crontab dinamicamente e lancia cron
 CMD if [ -z "$CRON" ]; then \
-        echo "@reboot bash -c 'source /app/venv/bin/activate && python /app/main.py --config $CONFIG_FILE --session $SESSION_FILE'" > /etc/crontabs/root ; \
+        bash -c "echo '@reboot source /app/venv/bin/activate && python /app/main.py --config $CONFIG_FILE --session $SESSION_FILE' | crontab -"; \
     else \
-        echo "$CRON bash -c 'source /app/venv/bin/activate && python /app/main.py --config $CONFIG_FILE --session $SESSION_FILE'" > /etc/crontabs/root ; \
+        bash -c "echo '$CRON source /app/venv/bin/activate && python /app/main.py --config $CONFIG_FILE --session $SESSION_FILE' | crontab -"; \
     fi \
     && cron -f
