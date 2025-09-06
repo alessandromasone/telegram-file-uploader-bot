@@ -12,8 +12,9 @@ RUN touch /app/processed_file.txt
 
 # Copiamo i files necessari (requirements.txt, main.py, etc.) all'interno dell'immagine
 COPY requirements.txt /app/requirements.txt
-COPY main.py /app/main.py
-COPY test.py /app/test.py
+
+# Copiamo tutti i file .py nella directory di lavoro
+COPY *.py /app/
 
 # Creiamo una variabile d'ambiente per i comandi da eseguire prima di creare l'ambiente virtuale
 # La variabile contiene una lista di script separati da virgola
