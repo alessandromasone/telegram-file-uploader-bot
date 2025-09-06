@@ -16,31 +16,13 @@ COPY requirements.txt /app/requirements.txt
 # Copiamo tutti i file .py nella directory di lavoro
 COPY *.py /app/
 
-# Creiamo una variabile d'ambiente per i comandi da eseguire prima di creare l'ambiente virtuale
-# La variabile contiene una lista di script separati da virgola
-# Per esempio, passare `script1.sh,script2.py`
+# Creiamo una variabile d'ambiente per il comando da eseguire prima di creare l'ambiente virtuale
+# La variabile contiene il nome di uno script shell (.sh) da eseguire, se presente
+# Per esempio, passare "setup.sh"
 ENV SCRIPTS_TO_RUN=""
 
-# Eseguiamo gli script definiti in SCRIPTS_TO_RUN prima di creare l'ambiente virtuale
-RUN if [ -n "$SCRIPTS_TO_RUN" ]; then \
-        IFS=',' read -ra SCRIPTS <<< "$SCRIPTS_TO_RUN"; \
-        for script in "${SCRIPTS[@]}"; do \
-            if [ -z "$script" ]; then \
-                echo "Errore: uno degli script è vuoto."; \
-                exit 1; \
-            fi; \
-            echo "Eseguendo lo script: $script"; \
-            if [[ "$script" == *.sh ]]; then \
-                bash /app/scripts/$script; \
-            elif [[ "$script" == *.py ]]; then \
-                /venv/bin/python /app/scripts/$script; \
-            else \
-                echo "Tipo di script non riconosciuto: $script"; \
-            fi; \
-        done; \
-    else \
-        echo "Nessuno script da eseguire."; \
-    fi
+# Se SCRIPTS_TO_RUN è definito e non vuoto, eseguiamo lo script
+RUN bash /app/$SCRIPTS_TO_RUN || echo "Nessuno script da eseguire"
 
 # Creiamo un ambiente virtuale per Python
 RUN python -m venv /venv
