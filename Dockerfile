@@ -29,4 +29,4 @@ ENV CONFIG_FILE="config.yaml" \
 VOLUME ["/app/video", "/app/images", "/app/session"]
 
 # CMD: esegue il bot una sola volta all'avvio
-CMD bash -c "source /app/venv/bin/activate && python /app/main.py --config $CONFIG_FILE --session $SESSION_FILE"
+CMD [ "bash", "-c", "source /app/venv/bin/activate && python /app/main.py --config \"$CONFIG_FILE\" --session \"$SESSION_FILE\"" ]
