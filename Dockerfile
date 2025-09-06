@@ -1,32 +1,34 @@
-FROM python:3.11-slim
+# Utilizziamo un'immagine base di Python
+FROM python:3.9-slim
 
-# Installa ffmpeg e strumenti di sistema
-RUN apt-get update && apt-get install -y \
-    ffmpeg build-essential bash \
-    && rm -rf /var/lib/apt/lists/*
+# Installiamo FFmpeg
+RUN apt-get update && apt-get install -y ffmpeg
 
+# Creiamo e settiamo la directory di lavoro
 WORKDIR /app
 
-# Crea virtual environment
-RUN python -m venv /app/venv
+# Copiamo i files necessari (requirements.txt, main.py, etc.) all'interno dell'immagine
+COPY requirements.txt /app/requirements.txt
 
-# Aggiorna pip all'interno del venv
-RUN bash -c "source /app/venv/bin/activate && pip install --upgrade pip setuptools wheel"
+# Copiamo tutti i file .py nella directory di lavoro
+COPY *.py /app/
 
-# Copia requirements e installa nel venv
-COPY requirements.txt ./
-RUN bash -c "pip install --no-cache-dir -r requirements.txt"
+# Copiamo anche il file di configurazione esempio
+COPY config.example.yaml /app/config.example.yaml
 
-# Copia tutto il progetto
-COPY . .
+# Creiamo un ambiente virtuale per Python
+RUN python -m venv /venv
 
-# Variabili di ambiente
-ENV CONFIG_FILE="config.yaml" \
-    SESSION_FILE="session.session" \
-    PATH="/app/venv/bin:$PATH"
+# Attiviamo l'ambiente virtuale e installiamo le dipendenze
+RUN /venv/bin/pip install --upgrade pip && \
+    /venv/bin/pip install -r requirements.txt
 
-# Volumi per video, immagini e session
-VOLUME ["/app/video", "/app/images", "/app/session"]
+# Esponiamo la porta, se necessario
+EXPOSE 5000
 
-# CMD: esegue il bot una sola volta all'avvio
-CMD [ "bash", "-c", "python /app/main.py --config \"$CONFIG_FILE\" --session \"$SESSION_FILE\"" ]
+# Settiamo variabili d'ambiente (puoi modificarle al momento del run)
+ENV CONFIG_FILE="config.yaml"
+ENV SESSION_FILE="session.session"
+
+# Comando per eseguire lo script Python, passando i parametri come variabili d'ambiente
+CMD ["/venv/bin/python", "main.py", "--config", "$CONFIG_FILE", "--session", "$SESSION_FILE"]
