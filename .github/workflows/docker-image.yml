@@ -1,0 +1,32 @@
+name: Build and Push Docker image to GHCR
+
+on:
+  push:
+    branches:
+      - main  # Puoi sostituire "main" con il nome del tuo branch principale
+
+  # Se preferisci eseguire il workflow manualmente tramite GitHub Actions, usa il trigger 'workflow_dispatch':
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Esegui il job su un runner Ubuntu
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2  # Checkout del repository nel runner
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}  # Usa il token GitHub automatico per l'autenticazione
+
+    - name: Build Docker image
+      run: |
+        docker build -t ghcr.io/${{ github.repository }}:latest .
+      
+    - name: Push Docker image to GHCR
+      run: |
+        docker push ghcr.io/${{ github.repository }}:latest
