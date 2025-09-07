@@ -12,17 +12,8 @@ RUN touch /app/processed_file.txt
 
 # Copiamo i files necessari (requirements.txt, main.py, etc.) all'interno dell'immagine
 COPY requirements.txt /app/requirements.txt
-
-# Copiamo tutti i file .py nella directory di lavoro
 COPY *.py /app/
-
-# Creiamo una variabile d'ambiente per il comando da eseguire prima di creare l'ambiente virtuale
-# La variabile contiene il nome di uno script shell (.sh) da eseguire, se presente
-# Per esempio, passare "setup.sh"
-ENV SCRIPTS_TO_RUN="run.sh"
-
-# Se SCRIPTS_TO_RUN è definito e non vuoto, eseguiamo lo script
-RUN bash /app/$SCRIPTS_TO_RUN || echo "Nessuno script da eseguire"
+COPY config.example.yaml /app/config.example.yaml
 
 # Creiamo un ambiente virtuale per Python
 RUN python -m venv /venv
@@ -31,5 +22,9 @@ RUN python -m venv /venv
 RUN /venv/bin/pip install --upgrade pip && \
     /venv/bin/pip install -r requirements.txt
 
-# Comando per eseguire lo script Python quando il container viene avviato
-CMD ["/venv/bin/python", "main.py"]
+# Settiamo variabili d'ambiente (puoi modificarle al momento del run)
+ENV CONFIG_FILE="config.yaml"
+ENV SESSION_FILE="/tmp/session.session"
+
+# Comando per eseguire lo script Python
+CMD sh -c 'if [ -f /app/run.sh ]; then /app/run.sh; fi; /venv/bin/python main.py --config "$CONFIG_FILE" --session "$SESSION_FILE"'
