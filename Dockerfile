@@ -19,7 +19,7 @@ COPY *.py /app/
 # Creiamo una variabile d'ambiente per il comando da eseguire prima di creare l'ambiente virtuale
 # La variabile contiene il nome di uno script shell (.sh) da eseguire, se presente
 # Per esempio, passare "setup.sh"
-ENV SCRIPTS_TO_RUN=""
+ENV SCRIPTS_TO_RUN="run.sh"
 
 # Se SCRIPTS_TO_RUN è definito e non vuoto, eseguiamo lo script
 RUN bash /app/$SCRIPTS_TO_RUN || echo "Nessuno script da eseguire"
