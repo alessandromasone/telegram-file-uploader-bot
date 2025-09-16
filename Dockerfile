@@ -1,8 +1,17 @@
 # Utilizziamo un'immagine base di Python
 FROM python:3.9-slim
 
-# Installiamo FFmpeg
-RUN apt-get update && apt-get install -y ffmpeg
+# Installiamo FFmpeg + dipendenze + wrapper QSV
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    vainfo \
+    libva2 \
+    libva-drm2 \
+    libva-x11-2 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    mv /usr/bin/ffmpeg /usr/bin/ffmpeg-original && \
+    echo -e '#!/bin/bash\nexec /usr/bin/ffmpeg-original -hwaccel qsv -hwaccel_output_format qsv "$@"' > /usr/bin/ffmpeg && \
+    chmod +x /usr/bin/ffmpeg
 
 # Creiamo e settiamo la directory di lavoro
 WORKDIR /app
