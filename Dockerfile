@@ -1,19 +1,8 @@
 # Utilizziamo un'immagine base di Python
 FROM python:3.9-slim
 
-RUN echo "deb http://deb.debian.org/debian trixie main contrib non-free" > /etc/apt/sources.list.d/non-free.list \
-    && apt-get update
-
-# Installiamo FFmpeg + dipendenze
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    vainfo \
-    libva2 \
-    libva-drm2 \
-    libva-x11-2 \
-    intel-media-va-driver-non-free \
-    libvpl2 \
- && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Installiamo FFmpeg
+RUN apt-get update && apt-get install -y ffmpeg
 
 # Creiamo e settiamo la directory di lavoro
 WORKDIR /app
