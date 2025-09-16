@@ -7,8 +7,14 @@ RUN apt-get update && apt-get install -y \
     vainfo \
     libva2 \
     libva-drm2 \
-    libva-x11-2 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    libva-x11-2 \
+    intel-media-va-driver-non-free \
+    intel-opencl-icd \
+    libmfx1 \
+    libmfx-gen1 \
+    libmfxgen1 \
+    libvpl2 \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Creiamo e settiamo la directory di lavoro
 WORKDIR /app
