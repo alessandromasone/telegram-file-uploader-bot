@@ -125,6 +125,9 @@ async def process_folder(folder):
 
     # Inizia l'elaborazione dei file nella cartella
     print(f"Controllando la cartella: {folder}")
+
+    # Ottieni la lista dei file e ordina dal più piccolo al più grande
+    files = sorted(os.listdir(folder))
     
     # Itera attraverso tutti i file nella cartella
     for file in os.listdir(folder):
