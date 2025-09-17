@@ -13,15 +13,25 @@ def is_image(file_path):
     return os.path.splitext(file_path)[1].lower() in IMAGE_EXTENSIONS
 
 def is_already_processed(file_path, processed_files_path):
-    """Verifica se il file è già stato processato"""
+    """Verifica se il file è già stato processato sia per path assoluto che per nome del file"""
+    
+    # Se il file di log non esiste, significa che nessun file è stato processato
     if not os.path.exists(processed_files_path):
-        return False  # Se il file di log non esiste, il file non è stato processato
+        return False
+
+    # Estrai il nome del file dal path
+    file_name = os.path.basename(file_path)
 
     # Leggi il file di log riga per riga per verificare se il file è già stato processato
     with open(processed_files_path, 'r', encoding='utf-8') as file:
         for line in file:
-            if line.strip() == file_path:  # Se troviamo una corrispondenza esatta
+            # Normalizza i percorsi per evitare differenze tra path assoluti e relativi
+            processed_file_path = line.strip()
+
+            # Verifica se il path completo o solo il nome del file è stato registrato
+            if processed_file_path == file_path or os.path.basename(processed_file_path) == file_name:
                 return True
+
     return False
 
 def load_processed_files(processed_files_path):
