@@ -12,39 +12,29 @@ def is_image(file_path):
     """Verifica se il file specificato è un'immagine, controllando l'estensione del file."""
     return os.path.splitext(file_path)[1].lower() in IMAGE_EXTENSIONS
 
-def is_already_processed(file_path, processed_files_path):
-    """Verifica se il file è già stato processato sia per path assoluto che per nome del file"""
-    
-    # Se il file di log non esiste, significa che nessun file è stato processato
-    if not os.path.exists(processed_files_path):
-        return False
-
-    # Estrai il nome del file dal path
-    file_name = os.path.basename(file_path)
-
-    # Leggi il file di log riga per riga per verificare se il file è già stato processato
-    with open(processed_files_path, 'r', encoding='utf-8') as file:
-        for line in file:
-            # Normalizza i percorsi per evitare differenze tra path assoluti e relativi
-            processed_file_path = line.strip()
-
-            # Verifica se il path completo o solo il nome del file è stato registrato
-            if processed_file_path == file_path or os.path.basename(processed_file_path) == file_name:
-                return True
-
-    return False
-
 def load_processed_files(processed_files_path):
-    """Carica la lista dei file già processati da un file di log."""
+    """Carica la lista dei file già processati da un file di log come set di (path, basename)."""
     if not os.path.exists(processed_files_path):
-        return set()  # Se il file di log non esiste, ritorna un insieme vuoto
+        return set()
 
-    # Leggi i file processati dal file di log, restituendo un set
     with open(processed_files_path, 'r', encoding='utf-8') as file:
-        return {line.strip() for line in file if line.strip()}  # Usa un set per evitare duplicati
+        entries = {line.strip() for line in file if line.strip()}
 
-def save_processed_file(file_path, processed_files_path):
-    """Aggiunge un file al log dei file già processati."""
-    # Aggiungi il percorso del file al log
+    # Crea un set che contiene sia i path completi che i basename
+    lookup = set()
+    for entry in entries:
+        lookup.add(entry)
+        lookup.add(os.path.basename(entry))
+    return lookup
+
+def is_already_processed(file_path, processed_set):
+    """Verifica se il file è già stato processato usando il set pre-caricato."""
+    file_name = os.path.basename(file_path)
+    return file_path in processed_set or file_name in processed_set
+
+def save_processed_file(file_path, processed_files_path, processed_set):
+    """Aggiunge un file al log dei file già processati e aggiorna il set in memoria."""
     with open(processed_files_path, 'a', encoding='utf-8') as file:
-        file.write(f"{file_path}\n")  # Scrivi il percorso del file seguito da una nuova riga
+        file.write(f"{file_path}\n")
+    processed_set.add(file_path)
+    processed_set.add(os.path.basename(file_path))

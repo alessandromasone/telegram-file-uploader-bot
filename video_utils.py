@@ -31,30 +31,19 @@ def extract_video_metadata(video_path: str) -> Dict[str, Any]:
 # Funzione per estrarre il frame centrale del video come immagine (thumbnail)
 def extract_thumbnail(video_path):
     """Estrae un frame centrale del video e lo salva come immagine JPEG."""
-    # Apre il video con OpenCV
     cap = cv2.VideoCapture(video_path)
-    
-    # Ottiene il numero totale di frame nel video
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-    # Calcola il frame centrale del video
-    middle_frame = total_frames // 2
-    
-    # Imposta la posizione del video al frame centrale
-    cap.set(cv2.CAP_PROP_POS_FRAMES, middle_frame)
-    
-    # Legge il frame corrente
-    ret, frame = cap.read()
+    try:
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        middle_frame = total_frames // 2
+        cap.set(cv2.CAP_PROP_POS_FRAMES, middle_frame)
+        ret, frame = cap.read()
 
-    if ret:
-        # Se il frame è stato letto correttamente, salva come immagine temporanea
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
-            thumbnail_path = tmp_file.name
-            # Salva il frame come immagine JPEG
-            cv2.imwrite(thumbnail_path, frame)
-            cap.release()  # Rilascia la risorsa del video
-            return thumbnail_path  # Restituisce il percorso dell'immagine
-    else:
-        # Se non è riuscito a leggere il frame, rilascia la risorsa e restituisce None
+        if ret:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+                thumbnail_path = tmp_file.name
+                cv2.imwrite(thumbnail_path, frame)
+                return thumbnail_path
+        else:
+            return None
+    finally:
         cap.release()
-        return None
