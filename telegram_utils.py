@@ -1,8 +1,81 @@
 from typing import Optional, Any
 from telethon import TelegramClient
-from telethon.tl.types import DocumentAttributeVideo
+from telethon.tl.types import DocumentAttributeVideo, InputFileBig, InputFile
+from telethon.tl.functions.upload import SaveBigFilePartRequest, SaveFilePartRequest
 from video_utils import extract_video_metadata
 import os
+import asyncio
+import hashlib
+
+# Numero di worker per l'upload parallelo dei chunk
+PARALLEL_UPLOAD_WORKERS = 10
+
+
+async def parallel_upload_file(client: TelegramClient, file_path: str, show_progress: bool = False) -> Any:
+    """
+    Carica un file su Telegram inviando i chunk in parallelo.
+    Usa N worker concorrenti per saturare la banda disponibile.
+    """
+    file_size = os.path.getsize(file_path)
+    part_size = 512 * 1024  # 512KB - massimo consentito
+    total_parts = (file_size + part_size - 1) // part_size
+    file_name = os.path.basename(file_path)
+
+    # ID casuale per il file (signed 64-bit)
+    file_id = int.from_bytes(os.urandom(8), byteorder='little', signed=True)
+
+    # File > 10MB usano il protocollo BigFile
+    is_big = file_size > 10 * 1024 * 1024
+    hash_md5 = hashlib.md5() if not is_big else None
+
+    # Leggi tutte le parti in memoria
+    parts_data = []
+    with open(file_path, 'rb') as f:
+        for _ in range(total_parts):
+            data = f.read(part_size)
+            if hash_md5:
+                hash_md5.update(data)
+            parts_data.append(data)
+
+    # Progress tracking
+    uploaded_bytes = 0
+    lock = asyncio.Lock()
+    pbar = None
+
+    if show_progress:
+        from tqdm import tqdm
+        pbar = tqdm(total=file_size, unit='B', unit_scale=True, desc=f"Caricamento {file_name}")
+
+    semaphore = asyncio.Semaphore(PARALLEL_UPLOAD_WORKERS)
+
+    async def upload_part(part_idx, data):
+        nonlocal uploaded_bytes
+        async with semaphore:
+            if is_big:
+                req = SaveBigFilePartRequest(file_id, part_idx, total_parts, data)
+            else:
+                req = SaveFilePartRequest(file_id, part_idx, data)
+            await client(req)
+
+            if pbar:
+                async with lock:
+                    uploaded_bytes += len(data)
+                    pbar.n = uploaded_bytes
+                    pbar.last_print_n = pbar.n
+                    pbar.update(0)
+
+    # Invia tutti i chunk in parallelo (limitati dal semaforo)
+    await asyncio.gather(*[upload_part(i, data) for i, data in enumerate(parts_data)])
+
+    if pbar:
+        pbar.close()
+
+    # Restituisci l'InputFile per Telethon
+    if is_big:
+        return InputFileBig(id=file_id, parts=total_parts, name=file_name)
+    else:
+        return InputFile(id=file_id, parts=total_parts, name=file_name, md5_checksum=hash_md5.hexdigest())
+
 
 async def upload_video_to_telegram(
     client: TelegramClient,
@@ -33,7 +106,8 @@ async def upload_video_to_telegram(
             print(f"Errore durante l'estrazione dei metadati: {e}")
             return False
 
-        video_file = await upload_file_with_progress(client, video_path, show_progress)
+        # Upload parallelo del video
+        video_file = await parallel_upload_file(client, video_path, show_progress)
 
         thumbnail_file = None
         if thumbnail_path and os.path.exists(thumbnail_path):
@@ -82,7 +156,8 @@ async def upload_image_to_telegram(
             print(f"Errore: Il file '{image_path}' non esiste.")
             return False
 
-        image_file = await upload_file_with_progress(client, image_path, show_progress)
+        # Upload parallelo dell'immagine
+        image_file = await parallel_upload_file(client, image_path, show_progress)
 
         send_file_kwargs = {
             "entity": group_entity,
@@ -99,23 +174,6 @@ async def upload_image_to_telegram(
     except Exception as e:
         print(f"Errore durante l'upload dell'immagine: {e}")
         return False
-
-
-async def upload_file_with_progress(client: TelegramClient, file_path: str, show_progress: bool) -> Any:
-    """Carica un file su Telegram con una barra di progresso opzionale."""
-    file_size = os.path.getsize(file_path)
-
-    if show_progress:
-        from tqdm import tqdm
-        def progress_callback(current: int, total: int):
-            pbar.n = current
-            pbar.last_print_n = pbar.n
-            pbar.update(0)
-
-        with tqdm(total=file_size, unit='B', unit_scale=True, desc=f"Caricamento {os.path.basename(file_path)}") as pbar:
-            return await client.upload_file(file_path, progress_callback=progress_callback, part_size_kb=512)
-    else:
-        return await client.upload_file(file_path, part_size_kb=512)
 
 
 async def initialize_telegram_client(

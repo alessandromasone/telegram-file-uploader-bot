@@ -6,8 +6,8 @@ from video_utils import extract_thumbnail
 from telegram_utils import upload_video_to_telegram, upload_image_to_telegram, initialize_telegram_client
 from custom_utils import is_image, is_video, load_processed_files, save_processed_file, is_already_processed
 
-# Numero massimo di upload contemporanei
-MAX_CONCURRENT_UPLOADS = 3
+# Upload file uno alla volta (la velocità viene dal parallelismo dei chunk)
+MAX_CONCURRENT_UPLOADS = 1
 
 async def handle_video(client, config, group_entity, file_path):
     """Gestisce il caricamento di un video su Telegram."""
