@@ -1,5 +1,6 @@
 from typing import Optional, Any, List
 from telethon import TelegramClient
+from telethon.sessions import MemorySession
 from telethon.tl.types import DocumentAttributeVideo, InputFileBig, InputFile
 from telethon.tl.functions.upload import SaveBigFilePartRequest, SaveFilePartRequest
 from video_utils import extract_video_metadata
@@ -13,26 +14,36 @@ PARALLEL_SENDERS = 5
 PARALLEL_UPLOAD_WORKERS = 10
 
 
-async def _create_sender_pool(client: TelegramClient, count: int) -> List:
-    """Crea un pool di sender con connessioni TCP separate verso lo stesso DC."""
-    dc_id = client.session.dc_id
-    senders = []
+async def _create_upload_clients(client: TelegramClient, count: int) -> List[TelegramClient]:
+    """
+    Crea client aggiuntivi con connessioni TCP separate verso lo stesso DC.
+    Condividono la stessa auth_key del client principale (nessun export necessario).
+    """
+    pool = []
     for _ in range(count):
-        sender = await client._borrow_exported_sender(dc_id)
-        senders.append(sender)
-    return senders
+        session = MemorySession()
+        session.set_dc(
+            client.session.dc_id,
+            client.session.server_address,
+            client.session.port
+        )
+        session.auth_key = client.session.auth_key
+        upload_client = TelegramClient(session, client.api_id, client.api_hash)
+        await upload_client.connect()
+        pool.append(upload_client)
+    return pool
 
 
-async def _release_sender_pool(client: TelegramClient, senders: List) -> None:
-    """Rilascia i sender al pool del client."""
-    for sender in senders:
-        await client._return_exported_sender(sender)
+async def _disconnect_upload_clients(pool: List[TelegramClient]) -> None:
+    """Disconnette tutti i client del pool."""
+    for c in pool:
+        await c.disconnect()
 
 
 async def parallel_upload_file(client: TelegramClient, file_path: str, show_progress: bool = False) -> Any:
     """
     Carica un file su Telegram usando connessioni TCP multiple.
-    I chunk vengono distribuiti tra N sender paralleli per vero parallelismo di rete.
+    I chunk vengono distribuiti tra N client paralleli per vero parallelismo di rete.
     """
     file_size = os.path.getsize(file_path)
     part_size = 512 * 1024  # 512KB - massimo consentito
@@ -64,20 +75,20 @@ async def parallel_upload_file(client: TelegramClient, file_path: str, show_prog
         from tqdm import tqdm
         pbar = tqdm(total=file_size, unit='B', unit_scale=True, desc=f"Caricamento {file_name}")
 
-    # Crea pool di sender con connessioni TCP separate
-    senders = await _create_sender_pool(client, PARALLEL_SENDERS)
+    # Crea pool di client con connessioni TCP separate (stessa auth_key)
+    upload_clients = await _create_upload_clients(client, PARALLEL_SENDERS)
     semaphore = asyncio.Semaphore(PARALLEL_UPLOAD_WORKERS)
 
     async def upload_part(part_idx, data):
         nonlocal uploaded_bytes
         async with semaphore:
-            # Round-robin: distribuisci i chunk tra i sender
-            sender = senders[part_idx % len(senders)]
+            # Round-robin: distribuisci i chunk tra i client
+            upload_client = upload_clients[part_idx % len(upload_clients)]
             if is_big:
                 req = SaveBigFilePartRequest(file_id, part_idx, total_parts, data)
             else:
                 req = SaveFilePartRequest(file_id, part_idx, data)
-            await sender.send(req)
+            await upload_client(req)
 
             if pbar:
                 async with lock:
@@ -92,8 +103,8 @@ async def parallel_upload_file(client: TelegramClient, file_path: str, show_prog
     finally:
         if pbar:
             pbar.close()
-        # Rilascia i sender al pool
-        await _release_sender_pool(client, senders)
+        # Disconnetti i client del pool
+        await _disconnect_upload_clients(upload_clients)
 
     # Restituisci l'InputFile per Telethon
     if is_big:
