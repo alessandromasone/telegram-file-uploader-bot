@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, List
 from telethon import TelegramClient
 from telethon.tl.types import DocumentAttributeVideo, InputFileBig, InputFile
 from telethon.tl.functions.upload import SaveBigFilePartRequest, SaveFilePartRequest
@@ -7,14 +7,32 @@ import os
 import asyncio
 import hashlib
 
-# Numero di worker per l'upload parallelo dei chunk
+# Numero di connessioni TCP parallele verso il DC
+PARALLEL_SENDERS = 5
+# Numero di worker per l'upload parallelo dei chunk (distribuiti tra i sender)
 PARALLEL_UPLOAD_WORKERS = 10
+
+
+async def _create_sender_pool(client: TelegramClient, count: int) -> List:
+    """Crea un pool di sender con connessioni TCP separate verso lo stesso DC."""
+    dc_id = client.session.dc_id
+    senders = []
+    for _ in range(count):
+        sender = await client._borrow_exported_sender(dc_id)
+        senders.append(sender)
+    return senders
+
+
+async def _release_sender_pool(client: TelegramClient, senders: List) -> None:
+    """Rilascia i sender al pool del client."""
+    for sender in senders:
+        await client._return_exported_sender(sender)
 
 
 async def parallel_upload_file(client: TelegramClient, file_path: str, show_progress: bool = False) -> Any:
     """
-    Carica un file su Telegram inviando i chunk in parallelo.
-    Usa N worker concorrenti per saturare la banda disponibile.
+    Carica un file su Telegram usando connessioni TCP multiple.
+    I chunk vengono distribuiti tra N sender paralleli per vero parallelismo di rete.
     """
     file_size = os.path.getsize(file_path)
     part_size = 512 * 1024  # 512KB - massimo consentito
@@ -46,16 +64,20 @@ async def parallel_upload_file(client: TelegramClient, file_path: str, show_prog
         from tqdm import tqdm
         pbar = tqdm(total=file_size, unit='B', unit_scale=True, desc=f"Caricamento {file_name}")
 
+    # Crea pool di sender con connessioni TCP separate
+    senders = await _create_sender_pool(client, PARALLEL_SENDERS)
     semaphore = asyncio.Semaphore(PARALLEL_UPLOAD_WORKERS)
 
     async def upload_part(part_idx, data):
         nonlocal uploaded_bytes
         async with semaphore:
+            # Round-robin: distribuisci i chunk tra i sender
+            sender = senders[part_idx % len(senders)]
             if is_big:
                 req = SaveBigFilePartRequest(file_id, part_idx, total_parts, data)
             else:
                 req = SaveFilePartRequest(file_id, part_idx, data)
-            await client(req)
+            await sender.send(req)
 
             if pbar:
                 async with lock:
@@ -64,11 +86,14 @@ async def parallel_upload_file(client: TelegramClient, file_path: str, show_prog
                     pbar.last_print_n = pbar.n
                     pbar.update(0)
 
-    # Invia tutti i chunk in parallelo (limitati dal semaforo)
-    await asyncio.gather(*[upload_part(i, data) for i, data in enumerate(parts_data)])
-
-    if pbar:
-        pbar.close()
+    try:
+        # Invia tutti i chunk in parallelo distribuiti tra le connessioni
+        await asyncio.gather(*[upload_part(i, data) for i, data in enumerate(parts_data)])
+    finally:
+        if pbar:
+            pbar.close()
+        # Rilascia i sender al pool
+        await _release_sender_pool(client, senders)
 
     # Restituisci l'InputFile per Telethon
     if is_big:
@@ -106,7 +131,7 @@ async def upload_video_to_telegram(
             print(f"Errore durante l'estrazione dei metadati: {e}")
             return False
 
-        # Upload parallelo del video
+        # Upload parallelo del video con connessioni multiple
         video_file = await parallel_upload_file(client, video_path, show_progress)
 
         thumbnail_file = None
@@ -156,7 +181,7 @@ async def upload_image_to_telegram(
             print(f"Errore: Il file '{image_path}' non esiste.")
             return False
 
-        # Upload parallelo dell'immagine
+        # Upload parallelo dell'immagine con connessioni multiple
         image_file = await parallel_upload_file(client, image_path, show_progress)
 
         send_file_kwargs = {
@@ -197,5 +222,12 @@ async def initialize_telegram_client(
     else:
         print("Nessuna sessione trovata. Creazione nuova sessione...")
         await client.start(bot_token=bot_token) if bot_token else await client.start()
+
+    # Verifica se cryptg è disponibile per encryption veloce
+    try:
+        import cryptg
+        print("cryptg attivo: encryption AES accelerata (C)")
+    except ImportError:
+        print("ATTENZIONE: cryptg non disponibile, encryption AES in puro Python (più lento)")
 
     return client
