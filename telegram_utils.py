@@ -88,7 +88,12 @@ async def parallel_upload_file(client: TelegramClient, file_path: str, show_prog
                 req = SaveBigFilePartRequest(file_id, part_idx, total_parts, data)
             else:
                 req = SaveFilePartRequest(file_id, part_idx, data)
-            await upload_client(req)
+            upload_result = await upload_client(req)
+            if upload_result is not True:
+                raise RuntimeError(
+                    f"Telegram non ha confermato il chunk {part_idx + 1}/{total_parts} "
+                    f"del file '{file_name}'."
+                )
 
             if pbar:
                 async with lock:
