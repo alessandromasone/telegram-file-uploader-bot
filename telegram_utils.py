@@ -1,3 +1,17 @@
+"""Interazione con Telegram tramite Telethon.
+
+Contiene l'inizializzazione del client, l'upload parallelo dei file e le
+funzioni di invio di video e immagini.
+
+Upload parallelo: il file viene diviso in chunk da 512 KB che vengono inviati
+su ``PARALLEL_SENDERS`` connessioni TCP distinte verso lo stesso datacenter,
+con al massimo ``PARALLEL_UPLOAD_WORKERS`` chunk in volo contemporaneamente.
+I file oltre 10 MB usano il protocollo "big file" di Telegram.
+
+Nota: il file viene letto interamente in memoria prima dell'upload, quindi la
+RAM necessaria è pari alla dimensione del file più grande (fino a 2 GB).
+"""
+
 from typing import Optional, Any, List
 from telethon import TelegramClient
 from telethon.sessions import MemorySession

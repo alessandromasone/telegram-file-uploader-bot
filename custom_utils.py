@@ -1,3 +1,19 @@
+"""Utility per il riconoscimento dei file e il registro dei file processati.
+
+Variabili d'ambiente supportate:
+
+* ``MATCH_BY_FILENAME`` (default ``true``): se attivo, un file è considerato
+  già processato anche quando nel registro compare solo un file con lo
+  stesso nome in un'altra cartella. Con ``false`` si confronta solo il
+  percorso completo.
+* ``MIN_FILE_AGE_SECONDS`` (default ``0``): salta i file modificati negli
+  ultimi N secondi, utile se i file vengono copiati nella cartella mentre il
+  bot è in esecuzione. ``0`` disattiva il controllo.
+
+Il registro (``PROCESSED_FILES_PATH``) è un file di testo con un percorso per
+riga, scritto in append dopo ogni upload riuscito.
+"""
+
 import os
 import time
 

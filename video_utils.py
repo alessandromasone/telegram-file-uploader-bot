@@ -1,3 +1,8 @@
+"""Utility video: estrazione di metadati (via ffprobe) e thumbnail (via OpenCV).
+
+Richiede FFmpeg installato nel sistema (``ffprobe`` nel ``PATH``).
+"""
+
 import ffmpeg
 import os
 import cv2

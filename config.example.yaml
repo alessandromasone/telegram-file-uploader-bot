@@ -1,23 +1,29 @@
-# Dettagli di Autenticazione del Bot
-BOT_TOKEN: "123456789:ABCdefGHIjklMNOpQRsTUVWxyZ"  # Token per l'autenticazione del bot
-API_ID: "12345678"  # ID API per accedere all'API di Telegram
-API_HASH: "abcdefgh1234567890abcdef123456789"  # Hash API per una maggiore autenticazione
+# =====================================================================
+#  Telegram File Uploader Bot - configurazione di esempio
+#  Copia questo file in "config.yaml" e inserisci i tuoi dati.
+#  NON committare mai config.yaml: contiene credenziali (è in .gitignore).
+# =====================================================================
 
-# Impostazioni del Gruppo e delle Risposte
-GROUP_LINK: -1001234567890  # Link del gruppo Telegram (ID)
-REPLY_ID: 1 # ID della risposta predefinita
+# --- Autenticazione ---------------------------------------------------
+BOT_TOKEN: "123456789:ABCdefGHIjklMNOpQRsTUVWxyZ"  # Token del bot, da @BotFather
+API_ID: "12345678"                                 # Da https://my.telegram.org -> API development tools
+API_HASH: "abcdefgh1234567890abcdef123456789"      # Da https://my.telegram.org -> API development tools
 
-# Gestione dei File (Percorsi)
-FOLDERS:
-  - "path/to/video/folder"  # Cartella per i video da caricare
-  - "path/to/image/folder"  # Cartella per le immagini da caricare
-PROCESSED_FILES_PATH: "processed_files.txt"
+# --- Destinazione -----------------------------------------------------
+GROUP_LINK: -1001234567890  # ID numerico del gruppo/canale (i supergruppi/canali iniziano con -100)
+REPLY_ID: null              # Opzionale: ID del messaggio/topic a cui rispondere (gruppi con thread). null = nessuno
 
-# Impostazioni di Caricamento e Streaming
-VIDEO_THUMBNAIL: true|false # Abilita le miniature per i video
-SHOW_PROGRESS_BAR: true|false # Mostra la barra di progresso durante il caricamento
-SUPPORT_VIDEO_STREAMING: true|false # Supporta lo streaming video
-VIDEO_CAPTION: true|false # Includi didascalie per i video (nome del file)
-IMAGE_CAPTION: true|false # Includi didascalie per le immagini (nome del file)
-DELETE_AFTER_UPLOAD: true|false  # Eliminare i file dopo il caricamento
+# --- File -------------------------------------------------------------
+FOLDERS:                    # Cartelle da scansionare (solo primo livello, non ricorsivo)
+  - "path/to/video/folder"
+  - "path/to/image/folder"
+PROCESSED_FILES_PATH: "processed_files.txt"  # Registro dei file già caricati (uno per riga)
 
+# --- Opzioni di caricamento -------------------------------------------
+# Usa solo true o false (senza virgolette).
+VIDEO_THUMBNAIL: true          # Estrae il frame centrale del video come thumbnail
+SHOW_PROGRESS_BAR: true        # Mostra una barra di avanzamento (tqdm) durante l'upload
+SUPPORT_VIDEO_STREAMING: true  # Marca i video come riproducibili in streaming
+VIDEO_CAPTION: true            # Usa il nome del file (senza estensione) come didascalia dei video
+IMAGE_CAPTION: false           # Usa il nome del file (senza estensione) come didascalia delle immagini
+DELETE_AFTER_UPLOAD: false     # ATTENZIONE: se true elimina il file locale dopo un upload riuscito

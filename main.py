@@ -1,3 +1,19 @@
+"""Punto di ingresso del Telegram File Uploader Bot.
+
+Legge la configurazione YAML, si autentica su Telegram con Telethon e carica
+nel gruppo/canale configurato i video e le immagini presenti nelle cartelle
+``FOLDERS`` che non risultano ancora nel registro dei file processati.
+
+L'esecuzione è "one-shot": il bot scansiona le cartelle una volta, carica i
+file nuovi e termina. Per un caricamento periodico usare cron, un timer
+systemd o uno scheduler equivalente (vedi README).
+
+Uso::
+
+    python main.py --config config.yaml --session session.session
+    python main.py --version
+"""
+
 import os
 import asyncio
 import yaml
@@ -5,6 +21,7 @@ import argparse
 from video_utils import extract_thumbnail
 from telegram_utils import upload_video_to_telegram, upload_image_to_telegram, initialize_telegram_client
 from custom_utils import is_image, is_video, load_processed_files, save_processed_file, is_already_processed, is_file_stable
+from version import get_version
 
 # Upload file uno alla volta (la velocità viene dal parallelismo dei chunk)
 MAX_CONCURRENT_UPLOADS = 1
@@ -66,7 +83,13 @@ async def handle_image(client, config, group_entity, file_path):
     return success
 
 async def process_file(client, config, group_entity, file_path, processed_set, semaphore):
-    """Gestisce un file in base al tipo, se non è già stato processato."""
+    """Gestisce un singolo file in base al tipo.
+
+    Il file viene saltato se è già nel registro dei processati, se è stato
+    modificato da meno di ``MIN_FILE_AGE_SECONDS`` secondi o se l'estensione
+    non è supportata. Viene registrato come processato solo se l'upload va a
+    buon fine.
+    """
     async with semaphore:
         if is_already_processed(file_path, processed_set):
             print(f"Già processato, salto: {file_path}")
@@ -90,7 +113,12 @@ async def process_file(client, config, group_entity, file_path, processed_set, s
             print(f"Skippato (tipo non supportato): {file_path}")
 
 async def process_folder(client, config, group_entity, folder, processed_set, semaphore):
-    """Processa tutti i file all'interno della cartella con upload parallelo."""
+    """Processa i file (non ricorsivamente) di una cartella, in ordine alfabetico.
+
+    Il numero di upload contemporanei è limitato da ``semaphore``
+    (``MAX_CONCURRENT_UPLOADS``); il parallelismo vero avviene a livello di
+    chunk dentro ``parallel_upload_file``.
+    """
     if not os.path.isdir(folder):
         print(f"Errore: la cartella {folder} non esiste.")
         return
@@ -108,7 +136,13 @@ async def process_folder(client, config, group_entity, folder, processed_set, se
     await asyncio.gather(*tasks)
 
 async def main():
-    parser = argparse.ArgumentParser(description="Carica e processa video su Telegram.")
+    """Legge gli argomenti, carica la configurazione ed esegue una scansione completa."""
+    parser = argparse.ArgumentParser(description="Carica video e immagini da cartelle locali su Telegram.")
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f"%(prog)s {get_version()}"
+    )
     parser.add_argument(
         '--config',
         type=str,
@@ -122,6 +156,8 @@ async def main():
         help="Nome del file di sessione Telethon (default: 'session.session')"
     )
     args = parser.parse_args()
+
+    print(f"Telegram File Uploader Bot v{get_version()}")
 
     config_path = args.config
     if not os.path.exists(config_path):
