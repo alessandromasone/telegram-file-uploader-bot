@@ -4,7 +4,7 @@ import yaml
 import argparse
 from video_utils import extract_thumbnail
 from telegram_utils import upload_video_to_telegram, upload_image_to_telegram, initialize_telegram_client
-from custom_utils import is_image, is_video, load_processed_files, save_processed_file, is_already_processed
+from custom_utils import is_image, is_video, load_processed_files, save_processed_file, is_already_processed, is_file_stable
 
 # Upload file uno alla volta (la velocità viene dal parallelismo dei chunk)
 MAX_CONCURRENT_UPLOADS = 1
@@ -70,6 +70,10 @@ async def process_file(client, config, group_entity, file_path, processed_set, s
     async with semaphore:
         if is_already_processed(file_path, processed_set):
             print(f"Già processato, salto: {file_path}")
+            return
+
+        if not is_file_stable(file_path):
+            print(f"File modificato di recente, lo salto per ora: {file_path}")
             return
 
         if is_video(file_path):

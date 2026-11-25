@@ -118,6 +118,15 @@ async def parallel_upload_file(client: TelegramClient, file_path: str, show_prog
         return InputFile(id=file_id, parts=total_parts, name=file_name, md5_checksum=hash_md5.hexdigest())
 
 
+def _check_sent(message, file_path) -> bool:
+    """Considera riuscito l'upload solo se Telegram ha restituito un messaggio con il media."""
+    if message is None or getattr(message, "media", None) is None:
+        print(f"Errore: nessun messaggio con media restituito per '{file_path}', non lo segno come processato.")
+        return False
+    print(f"Inviato '{os.path.basename(file_path)}' -> msg_id={message.id}")
+    return True
+
+
 async def upload_video_to_telegram(
     client: TelegramClient,
     group_entity,
@@ -175,8 +184,8 @@ async def upload_video_to_telegram(
         if caption:
             send_file_kwargs["caption"] = caption
 
-        await client.send_file(**send_file_kwargs)
-        return True
+        message = await client.send_file(**send_file_kwargs)
+        return _check_sent(message, video_path)
 
     except Exception as e:
         print(f"Errore durante l'upload del video: {e}")
@@ -209,8 +218,8 @@ async def upload_image_to_telegram(
         if caption:
             send_file_kwargs["caption"] = caption
 
-        await client.send_file(**send_file_kwargs)
-        return True
+        message = await client.send_file(**send_file_kwargs)
+        return _check_sent(message, image_path)
 
     except Exception as e:
         print(f"Errore durante l'upload dell'immagine: {e}")
